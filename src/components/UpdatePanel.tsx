@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { ApiError, UpdateInfo, UpdateProgress } from "../types";
+import { ReleaseNotesView } from "./ReleaseNotesView";
 import { ToggleSwitch } from "./ToggleSwitch";
 
 interface UpdatePanelProps {
@@ -49,45 +51,6 @@ function stageLabel(stage: string): string {
   }
 }
 
-function renderNotesLines(notes: string) {
-  const lines = notes
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  if (lines.length === 0) {
-    return <p className="notes-empty">此版本暂无详细更新日志，可前往 GitHub Release 页面查看完整变更。</p>;
-  }
-
-  return (
-    <div className="notes-list">
-      {lines.map((line, idx) => {
-        if (line.startsWith("#")) {
-          const clean = line.replace(/^#+\s*/, "");
-          return (
-            <div key={idx} className="notes-heading">
-              {clean}
-            </div>
-          );
-        }
-        if (line.startsWith("- ") || line.startsWith("* ")) {
-          return (
-            <div key={idx} className="notes-bullet">
-              <span className="notes-bullet-dot" aria-hidden="true" />
-              <span>{line.slice(2)}</span>
-            </div>
-          );
-        }
-        return (
-          <p key={idx} className="notes-paragraph">
-            {line}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
 export function UpdatePanel({
   appVersion,
   updateInfo,
@@ -104,6 +67,13 @@ export function UpdatePanel({
   const currentVersion = updateInfo?.current_version ?? appVersion;
   const latestVersion = updateInfo?.latest_version ?? currentVersion;
   const hasUpdate = Boolean(updateInfo?.has_update);
+  const latestVersionKey = updateInfo?.latest_version ?? null;
+  const [notesExpanded, setNotesExpanded] = useState<boolean>(hasUpdate);
+
+  useEffect(() => {
+    setNotesExpanded(Boolean(updateInfo?.has_update));
+  }, [updateInfo?.has_update, latestVersionKey]);
+
   const canInstall = Boolean(
     hasUpdate && updateInfo?.download_url && updateInfo?.asset_name && !installing
   );
@@ -314,14 +284,87 @@ export function UpdatePanel({
         )}
       </section>
 
-      {/* Release Notes Bento Card */}
-      <section className="bento-card release-notes-card" aria-label="更新说明">
-        <div className="release-notes-header">
-          <h3 className="bento-card-title">版本更新说明</h3>
-          <span className="mono-pill">v{latestVersion}</span>
-        </div>
-        {renderNotesLines(updateInfo?.release_notes ?? "")}
-      </section>
+      {/* Release Notes: collapsed by default when up-to-date, expanded when update available */}
+      {updateInfo &&
+        (notesExpanded ? (
+          <section className="bento-card release-notes-card" aria-label="更新说明">
+            <div className="release-notes-header">
+              <div className="release-notes-header-left">
+                <h3 className="bento-card-title">版本更新说明</h3>
+                <span className="mono-pill">v{latestVersion}</span>
+              </div>
+              <button
+                type="button"
+                className="pill-btn pill-btn-secondary rn-collapse-btn"
+                aria-expanded={true}
+                onClick={() => setNotesExpanded(false)}
+              >
+                <span>收起更新说明</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="13"
+                  height="13"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m18 15-6-6-6 6" />
+                </svg>
+              </button>
+            </div>
+            <ReleaseNotesView
+              markdown={updateInfo.release_notes ?? ""}
+              onOpenLink={onOpenReleasePage}
+            />
+          </section>
+        ) : (
+          <button
+            type="button"
+            className="release-notes-toggle-bar"
+            aria-expanded={false}
+            onClick={() => setNotesExpanded(true)}
+          >
+            <span className="release-notes-toggle-left">
+              <span className="release-notes-toggle-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="15"
+                  height="15"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 3v5h5" />
+                  <path d="M9 13h6" />
+                  <path d="M9 17h4" />
+                </svg>
+              </span>
+              <span className="release-notes-toggle-label">查看更新说明</span>
+              <span className="mono-pill">v{latestVersion}</span>
+            </span>
+            <span className="release-notes-toggle-right" aria-hidden="true">
+              <span>展开</span>
+              <svg
+                viewBox="0 0 24 24"
+                width="15"
+                height="15"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+        ))}
     </div>
   );
 }

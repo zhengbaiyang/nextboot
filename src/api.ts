@@ -9,7 +9,7 @@ import type {
   UpdateProgress,
 } from "./types";
 
-export const APP_VERSION = "0.2.0";
+export const APP_VERSION = "0.2.1";
 
 function isTauriRuntime(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
