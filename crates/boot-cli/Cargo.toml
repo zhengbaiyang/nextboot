@@ -1,0 +1,16 @@
+[package]
+name = "boot-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Command-line UEFI multi-OS boot switcher for NextBoot"
+
+[[bin]]
+name = "nextboot-cli"
+path = "src/main.rs"
+
+[dependencies]
+boot-core = { path = "../boot-core" }
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true

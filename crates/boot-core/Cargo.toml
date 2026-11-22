@@ -1,0 +1,24 @@
+[package]
+name = "boot-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Cross-platform UEFI NVRAM boot management engine"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Shutdown",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"

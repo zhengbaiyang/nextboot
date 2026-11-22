@@ -1,0 +1,100 @@
+name: Build & Test NextBoot
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-rust:
+    name: Rust Unit Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run boot-core & boot-cli tests
+        run: cargo test -p boot-core -p boot-cli
+
+      - name: Smoke test CLI in mock mode
+        run: |
+          cargo run -p boot-cli -- --mock status
+          cargo run -p boot-cli -- --mock list
+          cargo run -p boot-cli -- --mock next windows
+          cargo run -p boot-cli -- --mock default windows
+          cargo run -p boot-cli -- --mock clear-next
+
+  build-desktop:
+    name: Build Desktop + CLI (${{ matrix.platform }})
+    needs: test-rust
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            os: windows-latest
+          - platform: ubuntu-22.04-x64
+            os: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux Tauri system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            build-essential
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build CLI binary (release)
+        run: cargo build --release -p boot-cli
+
+      - name: Build Tauri desktop application
+        run: npm run tauri build
+
+      - name: Upload Windows artifacts
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextboot-windows-x64
+          path: |
+            target/release/nextboot-cli.exe
+            target/release/nextboot.exe
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/msi/*.msi
+
+      - name: Upload Ubuntu artifacts
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextboot-ubuntu-x64
+          path: |
+            target/release/nextboot-cli
+            target/release/bundle/deb/*.deb
