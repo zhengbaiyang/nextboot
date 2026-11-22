@@ -133,13 +133,33 @@ jobs:
           name: NextBoot ${{ github.ref_name }}
           generate_release_notes: true
           body: |
+            <div align="center">
+              <img src="https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/banner.svg" alt="NextBoot Banner" width="820" />
+            </div>
+
             ## NextBoot ${{ github.ref_name }}
 
-            跨平台 UEFI 多系统重启切换工具（Windows 10/11 & Ubuntu 22.04 / 24.04）。
+            **跨平台 UEFI 多系统重启切换工具（Windows 10/11 & Ubuntu 22.04 / 24.04）** — 专为远程控制双系统电脑打造，支持桌面 GUI 与同源 CLI，在系统内直接决定下一次重启目标或设为长期默认，告别 Windows 自动重启掉回 Ubuntu 导致失联。
 
-            ### 下载说明
-            - **Windows 桌面安装包**：下载 `*-setup.exe`（NSIS 安装包）或 `*.msi`；绿色便携版请下载 `NextBoot-portable-windows-x64.exe`
-            - **Windows 命令行版**：下载 `nextboot-cli.exe`（请在管理员终端运行）
-            - **Ubuntu 22.04 / 24.04**：下载 `*.deb` 并执行 `sudo apt install ./NextBoot_*.deb`（同时自动安装桌面 GUI 与 `/usr/bin/nextboot-cli`）
-            - **Linux 独立命令行版**：下载 `nextboot-cli-linux-x64`（需 `chmod +x` 并配合 `sudo` 运行）
+            ### 界面演示与截图
+
+            <div align="center">
+              <img src="https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-demo.gif" alt="NextBoot UI 交互演示" width="720" />
+            </div>
+
+            | 主界面状态概览与一键切换 | 重启二次确认与强制重启保护 |
+            | :---: | :---: |
+            | ![主界面](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-main.png) | ![确认弹窗](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-modal.png) |
+
+            ### 下载与安装指南
+
+            | 目标系统 | 对应文件 | 使用方式 |
+            | :--- | :--- | :--- |
+            | **Windows 10/11 安装包** | `*-setup.exe` / `*.msi` | 双击安装，启动时自动请求一次 UAC 管理员权限 |
+            | **Windows 10/11 绿色便携版** | `NextBoot-portable-windows-x64.exe` | 免安装，双击即用 |
+            | **Windows 命令行版** | `nextboot-cli.exe` | 在管理员终端运行（如 `nextboot-cli.exe next ubuntu --reboot`） |
+            | **Ubuntu 22.04 / 24.04** | `*.deb` | 执行 `sudo apt install ./NextBoot_*.deb`（同时安装桌面 GUI 与 `/usr/bin/nextboot-cli`） |
+            | **Linux 独立命令行版** | `nextboot-cli-linux-x64` | `chmod +x` 后配合 `sudo` 使用，适合 SSH 终端场景 |
+
+            > 完整功能说明与排查文档请查看 [项目主页 README](https://github.com/zhengbaiyang/nextboot#readme)。
           files: dist-release/*

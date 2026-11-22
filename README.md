@@ -1,143 +1,229 @@
-# NextBoot — 跨平台 UEFI 多系统重启切换工具
+<div align="center">
+  <img src="docs/images/banner.svg" alt="NextBoot Banner" width="880" />
 
-**NextBoot** 是一款面向 **Windows 10/11** 与 **Ubuntu 22.04 / 24.04** 双系统用户的轻量级多系统切换工具（支持桌面 **GUI** 与同源 **CLI**），专门解决远程控制双系统电脑时的重启切换与防掉回痛点。
+  <br /><br />
 
-## 解决的核心痛点
+  [![Latest Release](https://img.shields.io/github/v/release/zhengbaiyang/nextboot?style=flat-square&logo=github&color=0284c7&label=最新版本)](https://github.com/zhengbaiyang/nextboot/releases/latest)
+  [![Build & Test](https://img.shields.io/github/actions/workflow/status/zhengbaiyang/nextboot/build.yml?branch=main&style=flat-square&logo=githubactions&label=双端构建)](https://github.com/zhengbaiyang/nextboot/actions)
+  [![Platforms](https://img.shields.io/badge/支持平台-Windows%2010%2F11%20%7C%20Ubuntu%2022.04%2F24.04-fb923c?style=flat-square)](#下载与安装)
+  [![Stack](https://img.shields.io/badge/技术栈-Rust%20%2B%20Tauri%20v2-34d399?style=flat-square&logo=rust)](#工作原理与架构)
+  [![License](https://img.shields.io/github/license/zhengbaiyang/nextboot?style=flat-square&color=8b5cf6&label=协议)](LICENSE)
 
-当工作电脑安装了 **Ubuntu + Windows 双系统** 且主引导默认为 Ubuntu 时：
-- 在远控软件（RustDesk / ToDesk / 向日葵 / RDP 等）下重启电脑，无法在主板/GRUB 启动菜单手工按键选系统；
-- 从 Ubuntu 切到 Windows 后，Windows 系统更新或意外自动重启会再次掉回默认的 Ubuntu，导致远控目标失联。
+  <p>
+    <strong>在系统内直接决定下一次重启进入 Windows 还是 Ubuntu，告别远控重启失联。</strong>
+  </p>
 
-**NextBoot** 通过直接读写主板 **UEFI NVRAM** 解决上述问题，Windows 与 Ubuntu 双端均**不需要互相挂载或修改对方磁盘分区**，零侵入、安全可靠。
-
----
-
-## 核心特性
-
-- **双端统一 UEFI NVRAM 引擎**
-  - **Windows**：原生 Win32 API（`GetFirmwareEnvironmentVariableW` / `SetFirmwareEnvironmentVariableW` + `SeSystemEnvironmentPrivilege`）。
-  - **Ubuntu**：原生读写 `/sys/firmware/efi/efivars`（自动处理 `FS_IMMUTABLE_FL` 只读标志），与 Windows 共用同一套 UEFI `EFI_LOAD_OPTION` 二进制解析器，零外部工具依赖。
-- **固件模式自动检测**：启动时自动检测是否为 UEFI；遇到旧版 Legacy BIOS (MBR) 会给出明确提示。
-- **两种切换模式**
-  1. **仅下一次重启生效（`BootNext`）**：指定下一次重启进入目标系统，消费一次后自动恢复原默认顺序；支持一键取消指定。
-  2. **设为长期默认（修改 `BootOrder`）**：将目标系统置顶为长期默认启动项，避免 Windows 多次更新重启后掉回 Ubuntu。
-  - 以上两种模式均支持「**仅保存设置，稍后重启**」和「**保存并立即重启**」。
-- **智能筛选与远控安全保护**
-  - 自动识别 Windows / Ubuntu / Linux 等操作系统并展示对应图标；
-  - 默认隐藏网卡 PXE、U 盘、光驱、UEFI Shell 等非系统杂项，防止远控误点失联（提供「**显示全部 UEFI 项（高级）**」开关）；
-  - 立即重启前弹出二次确认框，内置「**强制重启（忽略未保存程序阻塞 / systemd 抑制锁）**」可选项（默认不勾选，远控怕卡在重启界面时可一键勾选）。
-- **按需提权，零后台常驻**
-  - 按需打开、用完即关，不常驻后台服务和托盘。
-  - **Windows**：Release 版嵌入 `requireAdministrator` 清单，打开时弹一次 UAC，后续查看/写入/重启免重复弹窗。
-  - **Ubuntu**：GUI 以普通用户运行（完美兼容 X11 与 Wayland），查看状态免密；写入或重启时通过 `pkexec` 单次调用 `nextboot-cli`，全程仅输一次密码。
-- **内置模拟模式（`--mock`）**：可在不触碰真实主板 NVRAM、不真正重启的前提下安全测试 GUI 与 CLI。
+  <p>
+    <a href="#界面演示">界面演示</a> ·
+    <a href="#为什么需要-nextboot">核心痛点</a> ·
+    <a href="#下载与安装">下载安装</a> ·
+    <a href="#命令行cli用法">CLI 用法</a> ·
+    <a href="#工作原理与架构">工作原理</a> ·
+    <a href="#本地开发与构建">开发构建</a>
+  </p>
+</div>
 
 ---
 
-## 工程架构
+## 界面演示
 
-```text
-.
-├── crates/
-│   ├── boot-core/          # 跨平台 UEFI NVRAM 解析/写入、智能 OS 分类、重启控制、Mock 引擎
-│   └── boot-cli/           # 独立命令行工具 nextboot-cli（兼任 Ubuntu GUI 的 pkexec 提权执行器）
-├── src-tauri/              # Tauri v2 桌面宿主（Windows UAC 清单、Linux pkexec 封装）
-├── src/                    # React + TypeScript + Vite 前端桌面界面
-└── .github/workflows/      # GitHub Actions Windows + Ubuntu 双端自动测试与打包工作流
-```
+### 动态交互预览
+
+> 展示从查看当前系统与默认引导、一键指定 `BootNext`、展开高级 UEFI 风险项，到弹出二次确认框并切换长期默认与强制重启的完整流程：
+
+<div align="center">
+  <img src="docs/images/ui-demo.gif" alt="NextBoot UI 交互演示" width="760" />
+</div>
+
+### 功能界面截图
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/images/ui-main.png" alt="主界面概览" width="100%" />
+      <br />
+      <strong>① 状态概览与一键切换</strong>
+      <br />
+      <sub>清晰展示当前运行、长期默认与下次重启指定，支持仅预设或立即重启</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/images/ui-modal.png" alt="重启二次确认与强制重启选项" width="100%" />
+      <br />
+      <strong>② 二次确认与远控防卡死保护</strong>
+      <br />
+      <sub>可自由选择「仅下次生效」或「设为长期默认」，支持勾选「强制重启」</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="docs/images/ui-advanced.png" alt="高级 UEFI 启动项与风险警告" width="72%" />
+      <br />
+      <strong>③ 智能过滤杂项与高级模式风险提示</strong>
+      <br />
+      <sub>默认隐藏网卡 PXE、U 盘与 UEFI Shell；开启高级模式后高亮提醒风险项，防止远控误选失联</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## 命令行（CLI）使用说明
+## 为什么需要 NextBoot？
 
-在 Ubuntu SSH 终端或 Windows 管理员终端下均可直接使用 `nextboot-cli`：
+当你的工作电脑安装了 **Ubuntu + Windows 双系统** 且主引导默认是 Ubuntu，又经常通过 **RustDesk / ToDesk / 向日葵 / RDP / SSH** 远程操作时：
+
+| 常见痛点 | NextBoot 的解决方案 |
+| :--- | :--- |
+| 远控重启时无法在主板 / GRUB 启动菜单按键选系统 | 在当前系统内直接指定下一次重启进入目标系统（写入 UEFI `BootNext`） |
+| 切到 Windows 后，系统更新或意外重启又自动掉回 Ubuntu | 支持一键「**设为长期默认**」（置顶 UEFI `BootOrder`），多次重启仍稳稳进 Windows |
+| 远控点击重启时，Windows 被未保存的记事本/后台程序卡在关机界面 | 重启确认框内置「**强制重启**」选项（Windows 强制关闭阻塞程序 / Ubuntu 忽略 systemd 抑制锁） |
+| 跨系统修改对方磁盘分区的 GRUB 配置容易出错甚至损坏文件系统 | 直接读写主板 **UEFI NVRAM**，Windows 与 Ubuntu 互不触碰对方磁盘，零侵入 |
+| 主板 UEFI 列表混杂 PXE 网卡、U 盘、EFI Shell，误点会导致远程失联 | 智能解析 UEFI Device Path，默认仅展示操作系统项，并对非系统项给出醒目警告 |
+| 后台常驻服务占资源，或 Ubuntu Wayland 下无法直接用 root 启动 GUI | **按需打开、用完即关**：Windows 嵌入 UAC 清单；Ubuntu GUI 普通用户运行，仅写入/重启时 `pkexec` 单次授权 |
+
+---
+
+## 下载与安装
+
+前往 [**GitHub Releases 页面**](https://github.com/zhengbaiyang/nextboot/releases/latest) 直接下载对应平台安装包：
+
+| 目标系统 | 推荐下载文件 | 说明 |
+| :--- | :--- | :--- |
+| **Windows 10 / 11 (桌面版)** | `NextBoot_*_x64-setup.exe` 或 `*.msi` | 正式安装包，打开自动请求一次 UAC 管理员权限 |
+| **Windows 10 / 11 (免安装绿色版)** | `NextBoot-portable-windows-x64.exe` | 单文件双击即用，无需安装 |
+| **Windows 10 / 11 (命令行版)** | `nextboot-cli.exe` | 适合脚本调用，请在管理员终端运行 |
+| **Ubuntu 22.04 / 24.04 (桌面+CLI)** | `NextBoot_*_amd64.deb` | 执行 `sudo apt install ./NextBoot_*_amd64.deb`，同时安装桌面图标与 `/usr/bin/nextboot-cli` |
+| **Linux (独立命令行版)** | `nextboot-cli-linux-x64` | `chmod +x` 后配合 `sudo` 运行，适合无桌面 SSH 场景 |
+
+> **前提要求**：目标电脑需工作在 **UEFI 引导模式**。NextBoot 启动时会自动检测固件环境，若为传统 Legacy BIOS (MBR) 会给出明确提示。
+
+---
+
+## 命令行（CLI）用法
+
+除了桌面图形界面，NextBoot 还内置同源命令行工具 `nextboot-cli`，方便在 Ubuntu SSH 终端或 Windows 管理员终端中快速切换：
 
 ```bash
 # 查看当前运行系统、长期默认与下次指定状态
 nextboot-cli status
 
-# 列出操作系统启动项（默认智能过滤 PXE/U盘等；加 --all 查看全部）
+# 列出启动项（默认智能过滤 PXE/U盘/固件；加 --all 查看主板全部 UEFI 项）
 nextboot-cli list
 nextboot-cli list --all
 
-# 设置仅下一次重启进入 Windows（支持编号 0002 或关键词 windows / ubuntu）
+# 设置「仅下一次重启」进入 Windows（支持编号 0002 或关键词 windows / ubuntu）
 sudo nextboot-cli next windows
 
 # 设置下次重启进入 Windows 并立即重启（加 --force 忽略未保存程序/阻止关机锁）
 sudo nextboot-cli next windows --reboot
 sudo nextboot-cli next windows --reboot --force
 
-# 取消已设置的下次重启指定 (BootNext)
+# 取消已设置的下次重启指定 (BootNext)，恢复按默认顺序启动
 sudo nextboot-cli clear-next
 
-# 将 Windows 设为长期默认启动项（防止 Windows 自动更新多次重启掉回 Ubuntu）
+# 将 Windows 设为「长期默认启动项」（置顶 BootOrder，防多次自动重启掉回 Ubuntu）
 sudo nextboot-cli default windows
 sudo nextboot-cli default windows --reboot
 
-# 所有命令均支持 --mock（模拟测试）与 --json（脚本/程序解析）
+# 安全体验：所有命令均支持 --mock（模拟 UEFI 数据，不改主板、不真重启）与 --json 输出
 nextboot-cli --mock status
 nextboot-cli --mock list --json
 ```
 
-> **Windows 提示**：Windows 下读写 UEFI 变量需要管理员权限，请在「以管理员身份运行」的 PowerShell / CMD 中执行 `nextboot-cli.exe`（`--mock` 模式无需管理员权限）。
+---
+
+## 工作原理与架构
+
+NextBoot 在 Windows 与 Ubuntu 两端共享同一套纯 Rust 编写的 UEFI `EFI_LOAD_OPTION` 二进制解析与分类引擎（`boot-core`）：
+
+```mermaid
+flowchart LR
+    UI["桌面 GUI (Tauri v2 + React)"] --> Core["boot-core (Rust 统一 UEFI 解析与智能分类)"]
+    CLI["命令行 nextboot-cli"] --> Core
+
+    Core -->|Windows| WinAPI["Win32 Firmware API + Shutdown API<br/>(UAC requireAdministrator)"]
+    Core -->|Ubuntu 读取| EfiRead["/sys/firmware/efi/efivars (普通用户只读)"]
+    UI -->|Ubuntu 写入 / 重启| Pkexec["pkexec nextboot-cli (单次密码授权)"]
+    Pkexec --> EfiWrite["/sys/firmware/efi/efivars (解除 immutable) + systemctl reboot"]
+
+    WinAPI --> NVRAM[("主板 UEFI NVRAM<br/>BootCurrent / BootOrder / BootNext")]
+    EfiRead --> NVRAM
+    EfiWrite --> NVRAM
+```
+
+### 工程目录结构
+
+```text
+.
+├── crates/
+│   ├── boot-core/          # 跨平台 UEFI NVRAM 解析/写入、OS 智能分类、重启控制、Mock 引擎
+│   └── boot-cli/           # 独立命令行工具 nextboot-cli（兼任 Ubuntu GUI 的 pkexec 提权执行器）
+├── src-tauri/              # Tauri v2 桌面宿主（Windows UAC 清单、Linux pkexec 桥接）
+├── src/                    # React + TypeScript + Vite 桌面前端界面
+├── docs/images/            # README 与 Release 展示用 UI 演示动图及截图
+└── .github/workflows/      # GitHub Actions 双端自动测试、打包与 Release 发布工作流
+```
 
 ---
 
 ## 本地开发与构建
 
-### 环境依赖
+<details>
+<summary><strong>点击展开：环境依赖、模拟调试与双端打包命令</strong></summary>
+
+### 1. 环境准备
 - **Rust**（1.80+，stable 工具链）
 - **Node.js**（20+）与 `npm`
-- **Ubuntu 构建依赖**（Ubuntu 22.04 / 24.04）：
+- **Ubuntu 22.04 / 24.04 系统构建依赖**：
   ```bash
   sudo apt-get update
   sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev build-essential
   ```
 
-### 运行单元测试与模拟模式
-
+### 2. 单元测试与模拟模式调试（不改动本机 UEFI）
 ```bash
 # 运行核心库与 CLI 单元测试
 cargo test -p boot-core -p boot-cli
 
-# 模拟模式体验 CLI
+# 模拟模式测试 CLI
 cargo run -p boot-cli -- --mock list
 cargo run -p boot-cli -- --mock next windows
 cargo run -p boot-cli -- --mock status
 
-# 安装前端依赖
+# 安装前端依赖并启动模拟模式桌面开发窗口
 npm install
-
-# 启动桌面端开发模式（使用模拟 UEFI 数据，安全调试界面）
 NEXTBOOT_MOCK=1 npm run tauri dev
-# PowerShell:
+# Windows PowerShell:
 # $env:NEXTBOOT_MOCK="1"; npm run tauri dev
 ```
 
-### 正式打包
-
+### 3. 本地正式打包
 ```bash
 # 1. 先构建 Release 版 CLI（Linux 打 .deb 时会自动将 nextboot-cli 打包到 /usr/bin/nextboot-cli）
 cargo build --release -p boot-cli
 
-# 2. 构建桌面应用与安装包（Windows 生成 .exe / NSIS / MSI，Ubuntu 生成 .deb）
+# 2. 打包桌面端与安装程序（Windows 产出 .exe/.msi，Ubuntu 产出 .deb）
 npm run tauri build
 ```
 
+</details>
+
+<details>
+<summary><strong>点击展开：常见问题排查 (FAQ)</strong></summary>
+
+1. **提示当前电脑不是 UEFI 引导模式**
+   - Windows 下按 `Win + R` 输入 `msinfo32`，查看「BIOS 模式」是否为 `UEFI`；
+   - Ubuntu 下检查 `/sys/firmware/efi/efivars` 目录是否存在。
+   - NextBoot v1 专注 UEFI NVRAM 方案，暂不支持传统 Legacy BIOS (MBR)。
+2. **Ubuntu 下源码运行 GUI 点击切换提示找不到 `nextboot-cli`**
+   - 通过官方 `.deb` 安装时会自动安装 `/usr/bin/nextboot-cli`；
+   - 本地开发调试时请先执行 `cargo build -p boot-cli`，确保 `nextboot-cli` 与主程序位于同一输出目录或已加入 `PATH`。
+3. **如何安全验证本机主板是否支持修改 UEFI NVRAM**
+   - 在 Ubuntu 下执行 `sudo nextboot-cli next <id>` 后运行 `nextboot-cli status` 查看「下次指定」是否生效，验证完成后执行 `sudo nextboot-cli clear-next` 复原即可。
+
+</details>
+
 ---
-
-## 常见问题排查
-
-1. **提示当前不是 UEFI 引导模式**
-   - Windows 下运行 `msinfo32` 检查「BIOS 模式」是否为 `UEFI`；
-   - Ubuntu 下检查 `/sys/firmware/efi/efivars` 是否存在。
-   - NextBoot v1 仅支持 UEFI 机器，暂不支持传统 Legacy BIOS (MBR)。
-2. **Ubuntu 下 GUI 点击切换提示找不到 `pkexec` 或 `nextboot-cli`**
-   - 通过正式 `.deb` 包安装时会自动安装 `/usr/bin/nextboot-cli`；
-   - 本地源码开发运行 GUI 时，请先执行 `cargo build -p boot-cli` 确保 `nextboot-cli` 与主程序位于同一输出目录，或将其放入 `PATH`。
-3. **如何验证是否支持修改主板 NVRAM**
-   - 可在 Ubuntu 下尝试 `sudo nextboot-cli next <id>` 后执行 `nextboot-cli status` 确认 `下次指定` 已生效，最后用 `sudo nextboot-cli clear-next` 复原。
 
 ## License
 
-MIT
+本项目基于 [MIT License](LICENSE) 开源。

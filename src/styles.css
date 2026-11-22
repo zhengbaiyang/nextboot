@@ -718,8 +718,8 @@ code {
 /* Toast */
 .toast {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: 22px;
+  bottom: 50px;
   max-width: 440px;
   padding: 11px 14px;
   border-radius: 10px;
