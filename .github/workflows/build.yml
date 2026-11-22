@@ -98,3 +98,48 @@ jobs:
           path: |
             target/release/nextboot-cli
             target/release/bundle/deb/*.deb
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: build-desktop
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Prepare flat release assets
+        run: |
+          mkdir -p dist-release
+          find release-artifacts -type f | while IFS= read -r file; do
+            base=$(basename "$file")
+            if [ "$base" = "nextboot.exe" ]; then
+              cp "$file" "dist-release/NextBoot-portable-windows-x64.exe"
+            elif [ "$base" = "nextboot-cli" ]; then
+              cp "$file" "dist-release/nextboot-cli-linux-x64"
+            else
+              cp "$file" "dist-release/$base"
+            fi
+          done
+          ls -lh dist-release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NextBoot ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            ## NextBoot ${{ github.ref_name }}
+
+            跨平台 UEFI 多系统重启切换工具（Windows 10/11 & Ubuntu 22.04 / 24.04）。
+
+            ### 下载说明
+            - **Windows 桌面安装包**：下载 `*-setup.exe`（NSIS 安装包）或 `*.msi`；绿色便携版请下载 `NextBoot-portable-windows-x64.exe`
+            - **Windows 命令行版**：下载 `nextboot-cli.exe`（请在管理员终端运行）
+            - **Ubuntu 22.04 / 24.04**：下载 `*.deb` 并执行 `sudo apt install ./NextBoot_*.deb`（同时自动安装桌面 GUI 与 `/usr/bin/nextboot-cli`）
+            - **Linux 独立命令行版**：下载 `nextboot-cli-linux-x64`（需 `chmod +x` 并配合 `sudo` 运行）
+          files: dist-release/*
