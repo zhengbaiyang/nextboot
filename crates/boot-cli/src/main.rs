@@ -10,7 +10,7 @@ use std::process::ExitCode;
 #[command(
     name = "nextboot-cli",
     version,
-    about = "NextBoot - 跨平台 UEFI 多系统重启切换命令行工具 (Windows / Ubuntu)"
+    about = "NextBoot - 跨平台 UEFI 多系统重启切换命令行工具 (Windows / Linux)"
 )]
 struct Cli {
     /// 使用模拟 UEFI 数据（不修改本机真实 NVRAM，不真正重启）
@@ -39,7 +39,7 @@ enum Commands {
 
     /// 设置「仅下一次重启」进入目标系统 (UEFI BootNext)
     Next {
-        /// 目标启动项编号（如 0002 / Boot0002）或系统关键词（如 windows / ubuntu）
+        /// 目标启动项编号（如 0002 / Boot0002）或系统关键词（如 windows / ubuntu / arch / deepin）
         target: String,
 
         /// 设置完成后立即重启电脑
@@ -56,7 +56,7 @@ enum Commands {
 
     /// 将目标系统设为「长期默认启动项」(置顶 UEFI BootOrder)
     Default {
-        /// 目标启动项编号（如 0002 / Boot0002）或系统关键词（如 windows / ubuntu）
+        /// 目标启动项编号（如 0002 / Boot0002）或系统关键词（如 windows / ubuntu / arch / deepin）
         target: String,
 
         /// 设置完成后立即重启电脑
@@ -322,10 +322,10 @@ fn print_status_human(state: &BootState) {
 
 fn print_entries_table(entries: &[&BootEntry], show_all: bool, total_count: usize) {
     println!(
-        "{:<10} {:<24} {:<18} {}",
-        "编号", "名称", "标记", "EFI 路径"
+        "{:<10} {:<32} {:<16} {:<12} {}",
+        "编号", "名称", "系统类型", "标记", "EFI 路径"
     );
-    println!("{}", "-".repeat(78));
+    println!("{}", "-".repeat(104));
     for e in entries {
         let mut tags = Vec::new();
         if e.is_current {
@@ -346,9 +346,10 @@ fn print_entries_table(entries: &[&BootEntry], show_all: bool, total_count: usiz
             tags.join(",")
         };
         println!(
-            "Boot{:<6} {:<24} {:<18} {}",
+            "Boot{:<6} {:<32} {:<16} {:<12} {}",
             e.id_hex,
             e.display_name,
+            e.os_label,
             tag_str,
             e.efi_path.as_deref().unwrap_or("-")
         );

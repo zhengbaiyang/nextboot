@@ -2,10 +2,12 @@
 mod elevate_linux;
 #[cfg(target_os = "windows")]
 mod elevate_windows;
+mod updater;
 
 use boot_core::{create_backend, format_boot_id, parse_boot_id, BootState, RebootOptions};
 use serde::{Deserialize, Serialize};
 use tauri::State;
+pub use updater::{UpdateInfo, UpdateProgress};
 
 pub struct AppConfig {
     pub use_mock: bool,
@@ -207,6 +209,26 @@ fn relaunch_elevated(app: tauri::AppHandle) -> Result<(), ApiError> {
     }
 }
 
+#[tauri::command]
+async fn check_for_updates(config: State<'_, AppConfig>) -> Result<UpdateInfo, ApiError> {
+    updater::check_for_updates(config.use_mock).await
+}
+
+#[tauri::command]
+async fn download_and_install_update(
+    app: tauri::AppHandle,
+    config: State<'_, AppConfig>,
+    download_url: String,
+    asset_name: String,
+) -> Result<String, ApiError> {
+    updater::download_and_install_update(app, config.use_mock, download_url, asset_name).await
+}
+
+#[tauri::command]
+fn open_release_page(url: String) -> Result<(), ApiError> {
+    updater::open_release_page(url)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let use_mock = std::env::args().any(|arg| arg == "--mock") || boot_core::env_requests_mock();
@@ -219,6 +241,9 @@ pub fn run() {
             clear_boot_next,
             reboot_now,
             relaunch_elevated,
+            check_for_updates,
+            download_and_install_update,
+            open_release_page,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NextBoot desktop application");

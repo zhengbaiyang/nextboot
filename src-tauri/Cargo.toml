@@ -17,6 +17,10 @@ boot-core = { path = "../crates/boot-core" }
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2", features = [] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+semver = "1"
+futures-util = "0.3"
+tokio = { version = "1", features = ["fs", "io-util", "time"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [

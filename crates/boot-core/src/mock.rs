@@ -23,6 +23,7 @@ struct MockRawEntry {
     display_name: String,
     efi_path: Option<String>,
     os_kind: OsKind,
+    os_label: String,
     active: bool,
     is_primary_os: bool,
     risk_warning: Option<String>,
@@ -67,8 +68,8 @@ impl MockBootBackend {
             };
         }
 
-        // Default realistic dual-boot scenario matching the user's setup:
-        // Ubuntu is primary (BootOrder[0]), Windows Boot Manager is secondary, currently booted in Windows or Ubuntu.
+        // Default realistic multi-OS scenario showcasing Ubuntu, Windows, Arch Linux, Deepin/UOS,
+        // plus non-primary advanced entries (PXE & Built-in EFI Shell).
         let boot_current = if cfg!(target_os = "windows") {
             Some(0x0002)
         } else {
@@ -79,7 +80,7 @@ impl MockBootBackend {
             firmware: FirmwareType::Uefi,
             boot_current,
             boot_next: None,
-            boot_order: vec![0x0001, 0x0002, 0x0003, 0x0004],
+            boot_order: vec![0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006],
             entries: vec![
                 MockRawEntry {
                     id: 0x0001,
@@ -87,6 +88,7 @@ impl MockBootBackend {
                     display_name: "Ubuntu".to_string(),
                     efi_path: Some("\\EFI\\ubuntu\\shimx64.efi".to_string()),
                     os_kind: OsKind::Ubuntu,
+                    os_label: "Ubuntu".to_string(),
                     active: true,
                     is_primary_os: true,
                     risk_warning: None,
@@ -97,16 +99,40 @@ impl MockBootBackend {
                     display_name: "Windows".to_string(),
                     efi_path: Some("\\EFI\\Microsoft\\Boot\\bootmgfw.efi".to_string()),
                     os_kind: OsKind::Windows,
+                    os_label: "Windows".to_string(),
                     active: true,
                     is_primary_os: true,
                     risk_warning: None,
                 },
                 MockRawEntry {
                     id: 0x0003,
+                    description: "Arch Linux".to_string(),
+                    display_name: "Arch Linux".to_string(),
+                    efi_path: Some("\\EFI\\arch\\grubx64.efi".to_string()),
+                    os_kind: OsKind::Arch,
+                    os_label: "Arch Linux".to_string(),
+                    active: true,
+                    is_primary_os: true,
+                    risk_warning: None,
+                },
+                MockRawEntry {
+                    id: 0x0004,
+                    description: "deepin".to_string(),
+                    display_name: "Deepin / UOS".to_string(),
+                    efi_path: Some("\\EFI\\deepin\\shimx64.efi".to_string()),
+                    os_kind: OsKind::Deepin,
+                    os_label: "Deepin / UOS".to_string(),
+                    active: true,
+                    is_primary_os: true,
+                    risk_warning: None,
+                },
+                MockRawEntry {
+                    id: 0x0005,
                     description: "UEFI: PXE IPv4 Realtek PCIe GBE".to_string(),
                     display_name: "UEFI: PXE IPv4 Realtek PCIe GBE".to_string(),
                     efi_path: None,
                     os_kind: OsKind::Network,
+                    os_label: "网络启动 (PXE)".to_string(),
                     active: true,
                     is_primary_os: false,
                     risk_warning: Some(
@@ -114,11 +140,12 @@ impl MockBootBackend {
                     ),
                 },
                 MockRawEntry {
-                    id: 0x0004,
+                    id: 0x0006,
                     description: "UEFI: Built-in EFI Shell".to_string(),
                     display_name: "UEFI: Built-in EFI Shell".to_string(),
                     efi_path: None,
                     os_kind: OsKind::Firmware,
+                    os_label: "固件工具".to_string(),
                     active: true,
                     is_primary_os: false,
                     risk_warning: Some(
@@ -180,6 +207,7 @@ impl BootBackend for MockBootBackend {
                     display_name: raw.display_name.clone(),
                     efi_path: raw.efi_path.clone(),
                     os_kind: raw.os_kind,
+                    os_label: raw.os_label.clone(),
                     active: raw.active,
                     is_primary_os: raw.is_primary_os,
                     is_current: state.boot_current == Some(raw.id),

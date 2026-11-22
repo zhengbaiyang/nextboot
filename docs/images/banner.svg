@@ -33,7 +33,7 @@
     <!-- Windows Blue right arrow -->
     <rect x="24" y="32" width="44" height="14" rx="5" fill="#38bdf8"/>
     <polygon points="64,23 94,39 64,55" fill="#38bdf8"/>
-    <!-- Ubuntu Orange left arrow -->
+    <!-- Linux Orange left arrow -->
     <rect x="48" y="70" width="44" height="14" rx="5" fill="#fb923c"/>
     <polygon points="52,61 22,77 52,93" fill="#fb923c"/>
   </g>
@@ -41,7 +41,7 @@
   <!-- Title & Tagline -->
   <g font-family="Segoe UI, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif">
     <text x="202" y="96" fill="#f8fafc" font-size="44" font-weight="750" letter-spacing="-0.5">NextBoot</text>
-    <text x="204" y="132" fill="#cbd5e1" font-size="18" font-weight="400">跨平台 UEFI 多系统重启切换 · Windows &amp; Ubuntu 远控防掉线助手</text>
+    <text x="204" y="132" fill="#cbd5e1" font-size="17" font-weight="400">跨平台 UEFI 多系统重启切换 · Windows &amp; 20+ Linux 发行版远控防掉线助手</text>
 
     <!-- Feature Pills -->
     <g transform="translate(204, 152)" font-size="12.5" font-weight="600">

@@ -139,7 +139,12 @@ jobs:
 
             ## NextBoot ${{ github.ref_name }}
 
-            **跨平台 UEFI 多系统重启切换工具（Windows 10/11 & Ubuntu 22.04 / 24.04）** — 专为远程控制双系统电脑打造，支持桌面 GUI 与同源 CLI，在系统内直接决定下一次重启目标或设为长期默认，告别 Windows 自动重启掉回 Ubuntu 导致失联。
+            **跨平台 UEFI 多系统重启切换工具（Windows 10/11 & 20+ 主流 Linux 发行版）** — 专为远程控制多系统电脑打造，支持桌面 GUI 与同源 CLI，在系统内直接决定下一次重启目标或设为长期默认，告别自动重启掉回其他系统导致失联。
+
+            ### 核心特性亮点
+            - **全新 Bento 精密触感桌面界面**：浅色默认 Bento 卡片 + 深邃曜石主状态卡，支持一键切换 **浅色 / 深色 Obsidian 主题**，内置实时搜索与分类筛选。
+            - **20+ 主流 Linux 发行版 UEFI 识别与专属图标**：支持 Ubuntu、Debian、Fedora、Arch Linux、Manjaro、Linux Mint、Pop!_OS、openSUSE、Kali、Rocky/Alma/CentOS/Red Hat、NixOS、Gentoo、Deepin/UOS、银河麒麟、EndeavourOS、SteamOS、Proxmox VE、Alpine、Void Linux 等。
+            - **应用内 GitHub Releases 自动更新**：启动时静默检测新版本，支持安全通道流式下载、实时进度条展示，以及 Windows 安装包自动拉起 / Linux `.deb` 一键更新。
 
             ### 界面演示与截图
 
@@ -147,9 +152,13 @@ jobs:
               <img src="https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-demo.gif" alt="NextBoot UI 交互演示" width="720" />
             </div>
 
-            | 主界面状态概览与一键切换 | 重启二次确认与强制重启保护 |
+            | 浅色 Bento 主界面 | 深色 Obsidian 主题 |
             | :---: | :---: |
-            | ![主界面](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-main.png) | ![确认弹窗](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-modal.png) |
+            | ![浅色 Bento 主界面](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-main.png) | ![深色 Obsidian 主题](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-dark.png) |
+
+            | 重启二次确认与强制重启开关 | 应用内 GitHub Releases 自动更新 |
+            | :---: | :---: |
+            | ![重启确认弹窗](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-modal.png) | ![应用内自动更新](https://raw.githubusercontent.com/zhengbaiyang/nextboot/main/docs/images/ui-update.png) |
 
             ### 下载与安装指南
 
@@ -157,9 +166,9 @@ jobs:
             | :--- | :--- | :--- |
             | **Windows 10/11 安装包** | `*-setup.exe` / `*.msi` | 双击安装，启动时自动请求一次 UAC 管理员权限 |
             | **Windows 10/11 绿色便携版** | `NextBoot-portable-windows-x64.exe` | 免安装，双击即用 |
-            | **Windows 命令行版** | `nextboot-cli.exe` | 在管理员终端运行（如 `nextboot-cli.exe next ubuntu --reboot`） |
-            | **Ubuntu 22.04 / 24.04** | `*.deb` | 执行 `sudo apt install ./NextBoot_*.deb`（同时安装桌面 GUI 与 `/usr/bin/nextboot-cli`） |
-            | **Linux 独立命令行版** | `nextboot-cli-linux-x64` | `chmod +x` 后配合 `sudo` 使用，适合 SSH 终端场景 |
+            | **Windows 命令行版** | `nextboot-cli.exe` | 在管理员终端运行（如 `nextboot-cli.exe next arch --reboot`） |
+            | **Ubuntu / Debian 系** | `*.deb` | 执行 `sudo apt install ./NextBoot_*.deb`（同时安装桌面 GUI 与 `/usr/bin/nextboot-cli`） |
+            | **Linux 独立命令行版** | `nextboot-cli-linux-x64` | `chmod +x` 后配合 `sudo` 使用，适合各发行版与 SSH 终端场景 |
 
             > 完整功能说明与排查文档请查看 [项目主页 README](https://github.com/zhengbaiyang/nextboot#readme)。
           files: dist-release/*

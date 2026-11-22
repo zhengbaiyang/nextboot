@@ -40,6 +40,7 @@ pub struct BootEntry {
     pub display_name: String,
     pub efi_path: Option<String>,
     pub os_kind: OsKind,
+    pub os_label: String,
     pub active: bool,
     pub is_primary_os: bool,
     pub is_current: bool,
@@ -144,7 +145,8 @@ pub fn create_backend(use_mock: bool) -> Box<dyn BootBackend> {
 }
 
 /// Resolve a user-provided target selector: either a hex boot ID (`0002`, `Boot0002`)
-/// or a case-insensitive unique match against `display_name` / `description` (e.g. `windows`, `ubuntu`).
+/// or a case-insensitive unique match against `display_name` / `description` / `os_label`
+/// (e.g. `windows`, `ubuntu`, `arch`, `deepin`).
 pub fn resolve_target_id(state: &BootState, selector: &str) -> Result<u16, BootError> {
     if let Ok(id) = parse_boot_id(selector) {
         if state.entries.iter().any(|e| e.id == id) {
@@ -157,12 +159,14 @@ pub fn resolve_target_id(state: &BootState, selector: &str) -> Result<u16, BootE
         return Err(BootError::InvalidBootId(selector.to_string()));
     }
 
-    // Prefer exact match on display_name or description among primary OS entries first
+    // Prefer exact match on display_name, description, or os_label
     let exact: Vec<&BootEntry> = state
         .entries
         .iter()
         .filter(|e| {
-            e.display_name.to_lowercase() == needle || e.description.to_lowercase() == needle
+            e.display_name.to_lowercase() == needle
+                || e.description.to_lowercase() == needle
+                || e.os_label.to_lowercase() == needle
         })
         .collect();
     if exact.len() == 1 {
@@ -176,7 +180,8 @@ pub fn resolve_target_id(state: &BootState, selector: &str) -> Result<u16, BootE
         .filter(|e| {
             e.is_primary_os
                 && (e.display_name.to_lowercase().contains(&needle)
-                    || e.description.to_lowercase().contains(&needle))
+                    || e.description.to_lowercase().contains(&needle)
+                    || e.os_label.to_lowercase().contains(&needle))
         })
         .collect();
     if primary_matches.len() == 1 {
@@ -190,6 +195,7 @@ pub fn resolve_target_id(state: &BootState, selector: &str) -> Result<u16, BootE
         .filter(|e| {
             e.display_name.to_lowercase().contains(&needle)
                 || e.description.to_lowercase().contains(&needle)
+                || e.os_label.to_lowercase().contains(&needle)
         })
         .collect();
     if all_matches.len() == 1 {
@@ -218,10 +224,21 @@ mod tests {
         assert_eq!(initial.firmware, FirmwareType::Uefi);
         assert_eq!(initial.default_boot.as_deref(), Some("0001"));
         assert_eq!(initial.boot_next, None);
+        assert_eq!(initial.entries.len(), 6);
+        assert_eq!(
+            initial.boot_order,
+            vec!["0001", "0002", "0003", "0004", "0005", "0006"]
+        );
 
-        // Resolve by name
+        // Resolve by name and os_label (case-insensitive)
         let win_id = resolve_target_id(&initial, "windows").unwrap();
         assert_eq!(win_id, 0x0002);
+        assert_eq!(resolve_target_id(&initial, "arch").unwrap(), 0x0003);
+        assert_eq!(resolve_target_id(&initial, "ARCH LINUX").unwrap(), 0x0003);
+        assert_eq!(resolve_target_id(&initial, "deepin").unwrap(), 0x0004);
+        assert_eq!(resolve_target_id(&initial, "uos").unwrap(), 0x0004);
+        assert_eq!(resolve_target_id(&initial, "pxe").unwrap(), 0x0005);
+        assert_eq!(resolve_target_id(&initial, "固件工具").unwrap(), 0x0006);
 
         // Set BootNext to Windows
         backend.set_boot_next(win_id).unwrap();
@@ -240,5 +257,38 @@ mod tests {
         assert_eq!(after_default.boot_order[0], "0002");
 
         let _ = std::fs::remove_file(&file);
+    }
+
+    #[test]
+    fn resolve_target_id_matches_os_label_when_description_differs() {
+        let state = BootState {
+            firmware: FirmwareType::Uefi,
+            host_os: "linux".to_string(),
+            is_mock: true,
+            is_elevated: true,
+            boot_current: Some("0001".to_string()),
+            boot_next: None,
+            default_boot: Some("0001".to_string()),
+            boot_order: vec!["0001".to_string()],
+            entries: vec![BootEntry {
+                id: 0x0001,
+                id_hex: "0001".to_string(),
+                description: "Kylin V10".to_string(),
+                display_name: "Kylin V10".to_string(),
+                efi_path: Some("\\EFI\\kylin\\grubx64.efi".to_string()),
+                os_kind: OsKind::Kylin,
+                os_label: "银河麒麟".to_string(),
+                active: true,
+                is_primary_os: true,
+                is_current: true,
+                is_default: true,
+                is_next: false,
+                order_index: Some(0),
+                risk_warning: None,
+            }],
+        };
+
+        assert_eq!(resolve_target_id(&state, "银河麒麟").unwrap(), 0x0001);
+        assert_eq!(resolve_target_id(&state, "麒麟").unwrap(), 0x0001);
     }
 }

@@ -213,6 +213,7 @@ impl WindowsBootBackend {
             display_name: cls.display_name,
             efi_path: parsed.device_path.file_path,
             os_kind: cls.os_kind,
+            os_label: cls.os_label,
             active: parsed.active,
             is_primary_os: cls.is_primary_os,
             is_current: boot_current == Some(id),
